@@ -1,16 +1,13 @@
-import frames.core.Graph;
 import frames.core.Frame;
+import frames.core.Graph;
+import frames.primitives.Rectangle;
 import frames.primitives.Vector;
 import frames.processing.Scene;
 import frames.processing.Shape;
 
-// import processing.core.PApplet;
-// import processing.core.PShape;
-// import processing.event.MouseEvent;
-
 Scene scene;
-ArrayList<Shape> shapes;
-Shape trackedShape;
+// ArrayList<Shape> shapes;
+// Shape trackedShape;
 
 Vector screenCoordinates;
 
@@ -18,6 +15,7 @@ int colorStroke;
 int colorFill;
 int colorAlpha;
 
+boolean zoomOnRegion;
 boolean drawSelector;
 
 void settings() {
@@ -76,6 +74,8 @@ void drawSelector() {
   scene.endScreenDrawing();
 
   popStyle();
+
+  println("Hay que implementar un rectSelector !");
 }
 
   // public void keyPressed() {
@@ -84,42 +84,56 @@ void drawSelector() {
   // }
   //
 
+void zoomOnRegion() {
+  if (screenCoordinates.x() < mouseX) {
+    Rectangle screenRectangle = new Rectangle((int) screenCoordinates.x(),
+      (int) screenCoordinates.y(), mouseX - (int) screenCoordinates.x(),
+      mouseY - (int) screenCoordinates.y());
+    scene.fitScreenRegionInterpolation(screenRectangle);
+  } else {
+    println("Hay que implementar un zoom out !");
+  }
+}
 
-  public void mouseDragged() {
-    if (mouseButton == LEFT) {
-      drawSelector = true;
-    } else if (mouseButton == CENTER) {
-      scene.mouseTranslate(scene.eye());
+void mouseDragged(MouseEvent event) {
+  if (mouseButton == LEFT) {
+    drawSelector = true;
+    if (event.isShiftDown()) {
+      zoomOnRegion = true;
     }
-    else if (mouseButton == RIGHT) {
-      scene.mouseCAD();
-    }
-
-  //   else if (mouseButton == CENTER)
-  //     scene.mouseLookAround(); // scene.scale(mouseX - pmouseX, defaultShape());
+  } else if (mouseButton == CENTER) {
+    scene.mouseTranslate(scene.eye());
   }
-
-  public void mouseWheel(MouseEvent event) {
-    scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye());
-    // scene.zoom(event.getCount() * 50, scene.eye());
+  else if (mouseButton == RIGHT) {
+    scene.mouseCAD();
   }
+//   else if (mouseButton == CENTER)
+//     scene.mouseLookAround(); // scene.scale(mouseX - pmouseX, defaultShape());
+}
 
-  public void mouseClicked(MouseEvent event) {
-    if (mouseButton == CENTER  && event.getCount() == 2) {
-      scene.fitBallInterpolation();
-    }
-  }
+void mouseWheel(MouseEvent event) {
+  scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye());
+}
 
-  void mousePressed() {
-    if (mouseButton == LEFT) {
-      screenCoordinates = new Vector(mouseX, mouseY);
-    }
+void mouseClicked(MouseEvent event) {
+  if (mouseButton == CENTER  && event.getCount() == 2) {
+    scene.fitBallInterpolation();
   }
+}
 
-  void mouseReleased() {
-    screenCoordinates = null;
-    drawSelector = false;
+void mousePressed() {
+  if (mouseButton == LEFT) {
+    screenCoordinates = new Vector(mouseX, mouseY);
   }
+}
+
+void mouseReleased() {
+  if (zoomOnRegion) zoomOnRegion();
+
+  screenCoordinates = null;
+  drawSelector = false;
+  zoomOnRegion = false;
+}
 
   //   if (mouseButton == LEFT) {
   //     trackedShape = null;
