@@ -32,6 +32,8 @@ Scene scene;
 // ArrayList<Shape> shapes;
 // Shape trackedShape;
 
+ArrayList<Eje> ejes;
+
 Vector screenCoordinates;
 
 int colorStroke;
@@ -52,6 +54,16 @@ public void setup() {
   scene.setType(Graph.Type.ORTHOGRAPHIC);
   scene.setFieldOfView(PI / 3);
   scene.fitBallInterpolation();
+
+  ejes = new ArrayList();
+
+  for (int i = 0; i < 1; i++) {
+    Eje eje = new Eje(scene, "Holi");
+    eje.setPosition(new Vector(10 * i, 10 * i, 10 * i));
+    ejes.add(eje);
+  }
+
+
 
   colorStroke = 127;
   colorFill   = 127;
@@ -76,6 +88,7 @@ public void draw() {
   //   popStyle();
   // }
 
+  scene.cast();
   if (drawSelector) drawSelector();
 }
 
@@ -185,6 +198,24 @@ public void mouseReleased() {
   //   fig.setFill(color(random(0, 255), random(0, 255), random(0, 255)));
   //   return fig;
   // }
+class Eje extends Frame {
+  String texto;
+
+  public Eje(Scene scene, String texto) {
+    super(scene);
+    this.texto = texto;
+  }
+
+  public @Override
+  void visit() {
+    this.graph().beginScreenDrawing();
+    Vector center = this.graph().screenLocation(this.position());
+    println(center);
+    text(texto, center.x(), center.y());
+    this.graph().endScreenDrawing();
+  }
+
+}
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "Prueba" };
     if (passedArgs != null) {

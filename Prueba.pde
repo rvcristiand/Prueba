@@ -9,6 +9,8 @@ Scene scene;
 // ArrayList<Shape> shapes;
 // Shape trackedShape;
 
+ArrayList<Eje> ejes;
+
 Vector screenCoordinates;
 
 int colorStroke;
@@ -29,6 +31,16 @@ void setup() {
   scene.setType(Graph.Type.ORTHOGRAPHIC);
   scene.setFieldOfView(PI / 3);
   scene.fitBallInterpolation();
+
+  ejes = new ArrayList();
+
+  for (int i = 0; i < 1; i++) {
+    Eje eje = new Eje(scene, "Holi");
+    eje.setPosition(new Vector(10 * i, 10 * i, 10 * i));
+    ejes.add(eje);
+  }
+
+
 
   colorStroke = 127;
   colorFill   = 127;
@@ -53,6 +65,7 @@ void draw() {
   //   popStyle();
   // }
 
+  scene.cast();
   if (drawSelector) drawSelector();
 }
 
