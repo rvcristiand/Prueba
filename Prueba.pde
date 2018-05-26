@@ -9,7 +9,7 @@ Scene scene;
 // ArrayList<Shape> shapes;
 // Shape trackedShape;
 
-ArrayList<Eje> ejes;
+Ejes ejes;
 
 Vector screenCoordinates;
 
@@ -29,18 +29,25 @@ void setup() {
   scene = new Scene(this);
   scene.setRightHanded();
   scene.setType(Graph.Type.ORTHOGRAPHIC);
+  scene.setRadius(10);
   scene.setFieldOfView(PI / 3);
   scene.fitBallInterpolation();
 
-  ejes = new ArrayList();
+  ejes = new Ejes(scene);
 
-  for (int i = 0; i < 1; i++) {
-    Eje eje = new Eje(scene, "Holi");
-    eje.setPosition(new Vector(10 * i, 10 * i, 10 * i));
-    ejes.add(eje);
+  int dx = 5;
+  int dy = 5;
+  int length = dx * dy;
+  String[] xBubbleText = {"A", "B", "C", "D", "E"};
+  ArrayList<Punto> puntos = new ArrayList();
+  for (int i = 0; i < 5; i++) {
+    ejes.add(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
+    puntos.add(new Punto(scene, new Vector(dx * 1, dy * i)));
   }
-
-
+  String[] yBubbleText = {"1", "2", "3", "4", "5"};
+  for (int i = 0; i < 5; i++) {
+    ejes.add(new Vector(dx * i, length + dx), new Vector(dx * i, -dy), xBubbleText[i]);
+  }
 
   colorStroke = 127;
   colorFill   = 127;
@@ -118,7 +125,7 @@ void mouseDragged(MouseEvent event) {
     scene.mouseTranslate(scene.eye());
   }
   else if (mouseButton == RIGHT) {
-    scene.mouseCAD();
+    scene.mouseCAD(new Vector (0, 0, 1));
   }
 //   else if (mouseButton == CENTER)
 //     scene.mouseLookAround(); // scene.scale(mouseX - pmouseX, defaultShape());

@@ -32,7 +32,7 @@ Scene scene;
 // ArrayList<Shape> shapes;
 // Shape trackedShape;
 
-ArrayList<Eje> ejes;
+Ejes ejes;
 
 Vector screenCoordinates;
 
@@ -52,18 +52,25 @@ public void setup() {
   scene = new Scene(this);
   scene.setRightHanded();
   scene.setType(Graph.Type.ORTHOGRAPHIC);
+  scene.setRadius(10);
   scene.setFieldOfView(PI / 3);
   scene.fitBallInterpolation();
 
-  ejes = new ArrayList();
+  ejes = new Ejes(scene);
 
-  for (int i = 0; i < 1; i++) {
-    Eje eje = new Eje(scene, "Holi");
-    eje.setPosition(new Vector(10 * i, 10 * i, 10 * i));
-    ejes.add(eje);
+  int dx = 5;
+  int dy = 5;
+  int length = dx * dy;
+  String[] xBubbleText = {"A", "B", "C", "D", "E"};
+  ArrayList<Punto> puntos = new ArrayList();
+  for (int i = 0; i < 5; i++) {
+    ejes.add(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
+    puntos.add(new Punto(scene, new Vector(dx * 1, dy * i)));
   }
-
-
+  String[] yBubbleText = {"1", "2", "3", "4", "5"};
+  for (int i = 0; i < 5; i++) {
+    ejes.add(new Vector(dx * i, length + dx), new Vector(dx * i, -dy), xBubbleText[i]);
+  }
 
   colorStroke = 127;
   colorFill   = 127;
@@ -141,7 +148,7 @@ public void mouseDragged(MouseEvent event) {
     scene.mouseTranslate(scene.eye());
   }
   else if (mouseButton == RIGHT) {
-    scene.mouseCAD();
+    scene.mouseCAD(new Vector (0, 0, 1));
   }
 //   else if (mouseButton == CENTER)
 //     scene.mouseLookAround(); // scene.scale(mouseX - pmouseX, defaultShape());
@@ -199,22 +206,227 @@ public void mouseReleased() {
   //   return fig;
   // }
 class Eje extends Frame {
-  String texto;
+  Vector _i;
+  Vector _j;
 
-  public Eje(Scene scene, String texto) {
+  String _bubbleText;
+  int _bubbleSize;
+  int _bubbleTextColor;
+
+  int _ejeColor;
+  int _ejeStroke;
+
+  public Eje(Scene scene, Vector i, Vector j, String bubbleText) {
+    this(scene, i, j, bubbleText, 40, color(239, 127, 26), 3,
+      color(0));
+  }
+
+  protected Eje(Scene scene, Vector i, Vector j, String bubbleText,
+    int bubbleSize, int ejeColor, int ejeStroke, int bubbleTextColor) {
     super(scene);
-    this.texto = texto;
+
+    _i = i;
+    _j = j;
+
+    _bubbleText = bubbleText;
+    _bubbleSize = bubbleSize;
+    _bubbleTextColor = bubbleTextColor;
+
+    _ejeColor = ejeColor;
+    _ejeStroke = ejeStroke;
+  }
+
+  public Vector i() {
+    return new Vector(_i.x(), _i.y(), _i.z());
+  }
+
+  public Vector j() {
+    return new Vector(_j.x(), _j.y(), _j.z());
+  }
+
+  public String bubbleText() {
+    return _bubbleText;
+  }
+
+  public int bubbleSize() {
+    return _bubbleSize;
+  }
+
+  public int bubbleTextColor() {
+    return _bubbleTextColor;
+  }
+
+  public int ejeColor() {
+    return _ejeColor;
+  }
+
+  public int ejeStroke() {
+    return _ejeStroke;
   }
 
   public @Override
   void visit() {
+    pushStyle();
+    stroke(ejeColor());
+    strokeWeight(ejeStroke());
+    line(i().x(), i().y(), i().z(), j().x(), j().y(), j().z());
+    popStyle();
+
+    Vector parallelDirection = vectorDirector();
+    Vector center = this.graph().screenLocation(i());
+    center.add(Vector.multiply(parallelDirection, -bubbleSize() / 2));
+
     this.graph().beginScreenDrawing();
-    Vector center = this.graph().screenLocation(this.position());
-    println(center);
-    text(texto, center.x(), center.y());
+    pushStyle();
+    stroke(ejeColor());
+    strokeWeight(ejeStroke());
+    fill(red(ejeColor()), green(ejeColor()), blue(ejeColor()), 63);
+    ellipse(center.x(), center.y(), bubbleSize(), bubbleSize());
+    popStyle();
+
+    pushStyle();
+    textAlign(CENTER, CENTER);
+    textSize(0.5f * bubbleSize());
+    fill(bubbleTextColor());
+    text(bubbleText(), center.x(), center.y());
+    popStyle();
     this.graph().endScreenDrawing();
   }
 
+  public Vector vectorDirector() {
+    Vector vectorDirector = Vector.subtract(j(), i());
+    vectorDirector.normalize();
+    return vectorDirector;
+  }
+}
+class Ejes {
+  Scene _scene;
+  ArrayList<Eje> _ejes;
+  ArrayList<Punto> _puntos;
+
+  public Ejes(Scene scene) {
+    _scene = scene;
+
+    _ejes = new ArrayList();
+    _puntos = new ArrayList();
+  }
+
+  protected Scene scene() {
+    return _scene;
+  }
+
+  public ArrayList<Eje> ejes() {
+    return _ejes;
+  }
+
+  public ArrayList<Punto> puntos() {
+    return _puntos;
+  }
+
+  public void add(Vector i, Vector j, String bubbleTexto) {
+    _ejes.add(new Eje(scene(), i, j, bubbleTexto));
+    addPuntos();
+  }
+
+  public void add(Eje eje) {
+    _ejes.add(eje);
+  }
+
+  public void addPuntos() {
+    int ejesSize = ejes().size();
+    if (ejesSize > 1) {
+      Eje lastEje = ejes().get(ejesSize - 2);
+
+      for (Eje eje : ejes()) {
+        println(eje.bubbleText());
+      }
+    }
+  }
+
+  public Vector intersectionBetweenEjes(Eje eje1, Eje eje2) {
+    Vector intersection;
+
+    float dx1 = eje1.j().x() - eje1.i().x();
+    float dx2 = eje2.j().x() - eje2.i().x();
+
+    float dy1 = eje1.j().y() - eje1.i().y();
+    float dy2 = eje2.j().y() - eje2.i().y();
+
+    float dx12 = eje2.i().x() - eje1.i().x();
+    float dy12 = eje2.i().x() - eje1.i().x();
+
+    float alpha = 1 / (dx2 * dy1 - dx1 * dy2);
+
+    float t1 = alpha * (dx2 * dy12 - dy2 * dx12);
+    float t2 = alpha * (dx1 * dy12 - dy1 * dx12);
+
+    if ((0 <= t1) && (t1 <= 1) && (0 <= t2) && (t2 <= 1)) {
+      intersection = Vector.multiply(eje1.i(),
+        (1 - t1)).add(Vector.multiply(eje1.j(), t1));
+    }
+
+    return intersection;
+
+  }
+
+  public void addPunto(Vector i) {
+    puntos().add(new Punto(scene(), i));
+  }
+}
+class Punto extends Frame {
+  Scene _scene;
+
+  int _crossSize;
+  int _crossColor;
+  int _crossWeightStroke;
+
+  Punto(Scene scene) {
+    this(scene, new Vector());
+  }
+
+  Punto(Scene scene, Vector i) {
+    super(scene);
+
+    _crossSize = 30;
+    _crossColor = color(0);
+    _crossWeightStroke = 2;
+
+    setPosition(i);
+    _scene = scene;
+  }
+
+  public Scene scene() {
+    return _scene;
+  }
+
+  public int crossSize() {
+    return _crossSize;
+  }
+
+  public int crossColor() {
+    return _crossColor;
+  }
+
+  public int crossWeightStroke() {
+    return _crossWeightStroke;
+  }
+
+  public @Override
+  void visit() {
+    Vector center = scene.screenLocation(this.position());
+    this.graph().beginScreenDrawing();
+    pushStyle();
+    stroke(crossColor());
+    strokeWeight(crossWeightStroke());
+    noFill();
+    ellipse(center.x(), center.y(), 3 * crossSize() / 8, 3 * crossSize() / 8);
+    line(center.x() - crossSize() / 2, center.y(),
+      center.x() + crossSize() / 2, center.y());
+    line(center.x(), center.y() - crossSize() / 2,
+      center.x(), center.y() + crossSize() / 2);
+    popStyle();
+    this.graph().endScreenDrawing();
+  }
 }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "Prueba" };
