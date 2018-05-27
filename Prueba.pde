@@ -10,48 +10,58 @@ Scene scene;
 // Shape trackedShape;
 
 Ejes ejes;
+Nodos nodos;
+
+Punto trackedPunto;
 
 Vector screenCoordinates;
+Vector worldCoordinates;
 
+float nivelZ;
+
+// Selector
 int colorStroke;
 int colorFill;
 int colorAlpha;
 
 boolean zoomOnRegion;
 boolean drawSelector;
+boolean drawCoordinates;
+boolean drawNivelZ;
+
+boolean addNodo;
 
 void settings() {
   size(800, 600, P3D);
 }
 
 void setup() {
-  // rectMode(CENTER);
   scene = new Scene(this);
   scene.setRightHanded();
   scene.setType(Graph.Type.ORTHOGRAPHIC);
-  scene.setRadius(10);
+  scene.setRadius(50);
   scene.setFieldOfView(PI / 3);
   scene.fitBallInterpolation();
 
   ejes = new Ejes(scene);
+  nodos = new Nodos(scene);
+
+  colorStroke = 127;
+  colorFill   = 127;
+  colorAlpha  = 63;
 
   int dx = 5;
   int dy = 5;
   int length = dx * dy;
   String[] xBubbleText = {"A", "B", "C", "D", "E"};
-  ArrayList<Punto> puntos = new ArrayList();
   for (int i = 0; i < 5; i++) {
     ejes.add(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
-    puntos.add(new Punto(scene, new Vector(dx * 1, dy * i)));
   }
   String[] yBubbleText = {"1", "2", "3", "4", "5"};
   for (int i = 0; i < 5; i++) {
-    ejes.add(new Vector(dx * i, length + dx), new Vector(dx * i, -dy), xBubbleText[i]);
+    ejes.add(new Vector(dx * i, length), new Vector(dx * i, -dy), yBubbleText[i]);
   }
 
-  colorStroke = 127;
-  colorFill   = 127;
-  colorAlpha  = 63;
   // shapes = new Shape[25];
   // for (int i = 0; i < shapes.length; i++) {
   //   shapes[i] = new Shape(scene, shape());
@@ -74,6 +84,9 @@ void draw() {
 
   scene.cast();
   if (drawSelector) drawSelector();
+  if (drawCoordinates) drawCoordinates();
+  if (drawNivelZ) drawNivelZ();
+  // if (addNodo) addNodo(); como atrapar eventos del mouse en custom func
 }
 
 void drawSelector() {
@@ -98,11 +111,46 @@ void drawSelector() {
   println("Hay que implementar un rectSelector !");
 }
 
-  // public void keyPressed() {
-  //   if (key == 's')
-  //     scene.fitBallInterpolation();
-  // }
-  //
+void drawCoordinates() {
+  String coordinates;
+
+  pushStyle();
+  scene.beginScreenDrawing();
+
+  textAlign(RIGHT, BOTTOM);
+  textSize(14);
+
+  fill(0);
+  text(")", width, height);
+  coordinates = ")";
+
+  fill(0, 0, 255);
+  text(nf(worldCoordinates.z(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinates.z(), 0, 3) + coordinates;
+
+  fill(0);
+  text(" ,", width - textWidth(coordinates), height);
+  coordinates = " ," + coordinates;
+
+  fill(0, 255, 0);
+  text(nf(worldCoordinates.y(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinates.y(), 0, 3) + coordinates;
+
+  fill(0);
+  text(" ,", width - textWidth(coordinates), height);
+  coordinates = " ," + coordinates;
+
+  fill(255, 0, 0);
+  text(nf(worldCoordinates.x(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinates.x(), 0, 3) + coordinates;
+
+  fill(0);
+  text("(", width - textWidth(coordinates), height);
+  coordinates = "(" + coordinates;
+
+  scene.endScreenDrawing();
+  popStyle();
+}
 
 void zoomOnRegion() {
   if (screenCoordinates.x() < mouseX) {
@@ -113,6 +161,27 @@ void zoomOnRegion() {
   } else {
     println("Hay que implementar un zoom out !");
   }
+}
+
+void drawNivelZ() {
+  pushStyle();
+  stroke(31, 117, 254);
+  fill(31, 117, 254, 15);
+  pushMatrix();
+  translate(0, 0, nivelZ);
+  ellipse(scene.center().x(), scene.center().y(),
+    2 * scene.radius(), 2 * scene.radius());
+  popMatrix();
+  popStyle();
+}
+
+void addNodo() {
+  nodos.add(worldCoordinates);
+}
+
+void mouseClicked(MouseEvent event) {
+  if (mouseButton == CENTER  && event.getCount() == 2) scene.fitBallInterpolation();
+  if (addNodo && mouseButton == LEFT) addNodo();
 }
 
 void mouseDragged(MouseEvent event) {
@@ -131,14 +200,21 @@ void mouseDragged(MouseEvent event) {
 //     scene.mouseLookAround(); // scene.scale(mouseX - pmouseX, defaultShape());
 }
 
-void mouseWheel(MouseEvent event) {
-  scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye());
+void mouseMoved() {
+  trackedPunto = null;
+  for (int i = 0; i < ejes.puntos().size(); i++) {
+    if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
+      trackedPunto = ejes.puntos().get(i);
+      worldCoordinates = trackedPunto.position();
+      break;
+    } else {
+      worldCoordinates = scene.location(new Vector(mouseX, mouseY));
+    }
+  }
 }
 
-void mouseClicked(MouseEvent event) {
-  if (mouseButton == CENTER  && event.getCount() == 2) {
-    scene.fitBallInterpolation();
-  }
+void mouseWheel(MouseEvent event) {
+  scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye());
 }
 
 void mousePressed() {
@@ -153,6 +229,33 @@ void mouseReleased() {
   screenCoordinates = null;
   drawSelector = false;
   zoomOnRegion = false;
+}
+
+public void keyPressed() {
+  switch (key) {
+    case 'c':
+      drawCoordinates = !drawCoordinates;
+      break;
+    case 'n':
+      addNodo = !addNodo;
+      if (addNodo) {
+        println("add nodo");
+      } else {
+        println("cancel");
+      }
+      break;
+    case '+':
+      nivelZ+=1;
+      ejes.setNivelZ(nivelZ);
+      break;
+    case '-':
+      nivelZ-=1;
+      ejes.setNivelZ(nivelZ);
+      break;
+    case 'z':
+      drawNivelZ = !drawNivelZ;
+      break;
+  }
 }
 
   //   if (mouseButton == LEFT) {

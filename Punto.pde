@@ -3,7 +3,7 @@ class Punto extends Frame {
 
   int _crossSize;
   int _crossColor;
-  int _crossWeightStroke;
+  float _crossWeightStroke;
 
   Punto(Scene scene) {
     this(scene, new Vector());
@@ -12,9 +12,9 @@ class Punto extends Frame {
   Punto(Scene scene, Vector i) {
     super(scene);
 
-    _crossSize = 30;
+    _crossSize = 20;
     _crossColor = color(0);
-    _crossWeightStroke = 2;
+    _crossWeightStroke = 1.5;
 
     setPosition(i);
     _scene = scene;
@@ -32,8 +32,16 @@ class Punto extends Frame {
     return _crossColor;
   }
 
-  int crossWeightStroke() {
+  float crossWeightStroke() {
     return _crossWeightStroke;
+  }
+
+  public float nivelZ() {
+    return position().z();
+  }
+
+  public void setNivelZ(float nivelZ) {
+    setPosition(new Vector(position().x(), position().y(), nivelZ));
   }
 
   @Override

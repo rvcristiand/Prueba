@@ -10,8 +10,7 @@ class Eje extends Frame {
   int _ejeStroke;
 
   public Eje(Scene scene, Vector i, Vector j, String bubbleText) {
-    this(scene, i, j, bubbleText, 40, color(239, 127, 26), 3,
-      color(0));
+    this(scene, i, j, bubbleText, 40, color(239, 127, 26), 3, color(0));
   }
 
   protected Eje(Scene scene, Vector i, Vector j, String bubbleText,
@@ -30,11 +29,19 @@ class Eje extends Frame {
   }
 
   Vector i() {
-    return new Vector(_i.x(), _i.y(), _i.z());
+    return _i;
+  }
+
+  public void setI(float x, float y, float z) {
+    i().setX(x); i().setY(y); i().setZ(z);
   }
 
   Vector j() {
-    return new Vector(_j.x(), _j.y(), _j.z());
+    return _j;
+  }
+
+  public void setJ(float x, float y, float z) {
+    j().setX(x); j().setY(y); j().setZ(z);
   }
 
   String bubbleText() {
@@ -57,17 +64,31 @@ class Eje extends Frame {
     return _ejeStroke;
   }
 
+  public float nivelZ() {
+    return position().z();
+  }
+
+  public void setNivelZ(float nivelZ) {
+    setI(i().x(), i().y(), nivelZ);
+    setJ(j().x(), j().y(), nivelZ);
+    setPosition(position().x(), position().y(), nivelZ);
+  }
+
   @Override
   void visit() {
     pushStyle();
     stroke(ejeColor());
     strokeWeight(ejeStroke());
-    line(i().x(), i().y(), i().z(), j().x(), j().y(), j().z());
+    line(i().x(), i().y(), 0, j().x(), j().y(), 0);
     popStyle();
 
-    Vector parallelDirection = vectorDirector();
-    Vector center = this.graph().screenLocation(i());
-    center.add(Vector.multiply(parallelDirection, -bubbleSize() / 2));
+    Vector iScreen = this.graph().screenLocation(i());
+    Vector jScreen = this.graph().screenLocation(j());
+    Vector parallelDirection = Vector.subtract(jScreen, iScreen);
+    parallelDirection.normalize();
+
+    Vector center = Vector.add(iScreen,
+      Vector.multiply(parallelDirection, -bubbleSize() / 2));
 
     this.graph().beginScreenDrawing();
     pushStyle();
@@ -84,11 +105,5 @@ class Eje extends Frame {
     text(bubbleText(), center.x(), center.y());
     popStyle();
     this.graph().endScreenDrawing();
-  }
-
-  Vector vectorDirector() {
-    Vector vectorDirector = Vector.subtract(j(), i());
-    vectorDirector.normalize();
-    return vectorDirector;
   }
 }
