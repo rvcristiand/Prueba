@@ -79,7 +79,7 @@ class Eje extends Frame {
     pushStyle();
     stroke(ejeColor());
     strokeWeight(ejeStroke());
-    line(i().x(), i().y(), 0, j().x(), j().y(), 0);
+    line(i().x(), i().y(), j().x(), j().y());
     popStyle();
 
     Vector iScreen = this.graph().screenLocation(i());

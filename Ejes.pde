@@ -1,17 +1,36 @@
+/**
+ * stressUNAL
+ *
+ * @author
+ *
+ *
+ */
+
+ /**
+  * A class to store many eje.
+  */
+
 class Ejes {
   Scene _scene;
   ArrayList<Eje> _ejes;
   ArrayList<Punto> _puntos;
 
-  float _nivelZ;
+  int _actualIndexNivelZ;
+  ArrayList<Float> _nivelesZ;
 
+  /**
+   * Creates a ejes.
+   */
   public Ejes(Scene scene) {
     _scene = scene;
 
     _ejes = new ArrayList();
     _puntos = new ArrayList();
 
-    _nivelZ = 0;
+    _actualIndexNivelZ = 0;
+
+    _nivelesZ = new ArrayList();
+    _nivelesZ.add(0f);
   }
 
   protected Scene scene() {
@@ -26,25 +45,42 @@ class Ejes {
     return _puntos;
   }
 
-  public float nivelZ() {
-    return _nivelZ;
+  public int actualIndexNivelZ() {
+    return _actualIndexNivelZ;
   }
 
-  public void setNivelZ(float nivelZ) {
-    _nivelZ = nivelZ;
-    for (Punto punto : puntos()) punto.setNivelZ(nivelZ());
-    for (Eje eje : ejes()) eje.setNivelZ(nivelZ());
+  public void setActualIndexNivelZ(int index) {
+    if ((0 <= index) && (index < nivelesZ().size())) {
+      _actualIndexNivelZ = index;
+      for (Punto punto : puntos()) {
+        punto.setNivelZ(nivelesZ().get(actualIndexNivelZ()));
+      }
+      for (Eje eje : ejes()) {
+        eje.setNivelZ(nivelesZ().get(actualIndexNivelZ()));
+      }
+    }
   }
 
-  void add(Vector i, Vector j, String bubbleTexto) {
-    add(new Eje(scene(), i, j, bubbleTexto));
+  public ArrayList<Float> nivelesZ() {
+    return _nivelesZ;
   }
 
-  void add(Eje eje) {
+  public void addNivelZ(float nivelZ) {
+    nivelesZ().add(nivelZ);
+  }
+
+  void addEje(Vector i, Vector j, String bubbleTexto) {
+    addEje(new Eje(scene(), i, j, bubbleTexto));
+  }
+
+  void addEje(Eje eje) {
     _ejes.add(eje);
     addPuntos();
   }
 
+  /**
+   * Add puntos located at intersection between each eje.
+   */
   void addPuntos() {
     int ejesSize = ejes().size();
 
@@ -61,6 +97,9 @@ class Ejes {
     }
   }
 
+  /**
+   * Get vector intersection between two ejes
+   */
   Vector intersectionBetweenEjes(Eje eje1, Eje eje2) {
     Vector intersection;
 
@@ -82,21 +121,24 @@ class Ejes {
       float t2 = alpha * (dx1 * dy12 - dy1 * dx12);
 
       if ((0 <= t1) && (t1 <= 1) && (0 <= t2) && (t2 <= 1)) {
-        Vector i = new Vector(eje1.i().x(), eje1.i().y());
-        Vector j = new Vector(eje1.j().x(), eje1.j().y());
+        Vector i = new Vector(eje1.i().x(), eje1.i().y(), eje1.i().z());
+        Vector j = new Vector(eje1.j().x(), eje1.j().y(), eje1.j().z());
         i.multiply(1 - t1);
         j.multiply(t1);
         intersection = Vector.add(i, j);
       } else {
-        intersection = null;
+        intersection = null;  // the lines don't cross between them
       }
     } else {
-      intersection = null;
+      intersection = null;  // the line are parallels
     }
 
     return intersection;
   }
 
+  /**
+   * Add a point
+   */
   void addPunto(Vector i) {
     puntos().add(new Punto(scene(), i));
   }

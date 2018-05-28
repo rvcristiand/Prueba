@@ -38,9 +38,9 @@ Nodos nodos;
 Punto trackedPunto;
 
 Vector screenCoordinates;
-Vector worldCoordinates;
+Vector worldCoordinates = new Vector();
 
-float nivelZ;
+int indexNivelZ = 0;
 
 // Selector
 int colorStroke;
@@ -49,8 +49,8 @@ int colorAlpha;
 
 boolean zoomOnRegion;
 boolean drawSelector;
-boolean drawCoordinates;
-boolean drawNivelZ;
+boolean drawCoordinates = true;
+boolean drawNivelesZ;
 
 boolean addNodo;
 
@@ -73,17 +73,20 @@ public void setup() {
   colorFill   = 127;
   colorAlpha  = 63;
 
+  // Ejes
   int dx = 5;
   int dy = 5;
   int length = dx * dy;
   String[] xBubbleText = {"A", "B", "C", "D", "E"};
   for (int i = 0; i < 5; i++) {
-    ejes.add(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
+    ejes.addEje(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
   }
   String[] yBubbleText = {"1", "2", "3", "4", "5"};
   for (int i = 0; i < 5; i++) {
-    ejes.add(new Vector(dx * i, length), new Vector(dx * i, -dy), yBubbleText[i]);
+    ejes.addEje(new Vector(dx * i, length), new Vector(dx * i, -dy), yBubbleText[i]);
   }
+  ejes.addNivelZ(5f);
+  ejes.addNivelZ(10f);
 
   // shapes = new Shape[25];
   // for (int i = 0; i < shapes.length; i++) {
@@ -108,7 +111,7 @@ public void draw() {
   scene.cast();
   if (drawSelector) drawSelector();
   if (drawCoordinates) drawCoordinates();
-  if (drawNivelZ) drawNivelZ();
+  if (drawNivelesZ) drawNivelesZ();
   // if (addNodo) addNodo(); como atrapar eventos del mouse en custom func
 }
 
@@ -186,16 +189,18 @@ public void zoomOnRegion() {
   }
 }
 
-public void drawNivelZ() {
-  pushStyle();
-  stroke(31, 117, 254);
-  fill(31, 117, 254, 15);
-  pushMatrix();
-  translate(0, 0, nivelZ);
-  ellipse(scene.center().x(), scene.center().y(),
-    2 * scene.radius(), 2 * scene.radius());
-  popMatrix();
-  popStyle();
+public void drawNivelesZ() {
+  for (int i = 0; i < ejes.nivelesZ().size(); i++) {
+    pushStyle();
+    stroke(31, 117, 254);
+    fill(31, 117, 254, 15);
+    pushMatrix();
+    translate(0, 0, ejes.nivelesZ().get(i));
+    ellipse(scene.center().x(), scene.center().y(),
+      2 * scene.radius(), 2 * scene.radius());
+    popMatrix();
+    popStyle();
+  }
 }
 
 public void addNodo() {
@@ -225,15 +230,15 @@ public void mouseDragged(MouseEvent event) {
 
 public void mouseMoved() {
   trackedPunto = null;
+
   for (int i = 0; i < ejes.puntos().size(); i++) {
     if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
       trackedPunto = ejes.puntos().get(i);
       worldCoordinates = trackedPunto.position();
-      break;
-    } else {
-      worldCoordinates = scene.location(new Vector(mouseX, mouseY));
+      return;
     }
   }
+  worldCoordinates = scene.location(new Vector(mouseX, mouseY));
 }
 
 public void mouseWheel(MouseEvent event) {
@@ -268,15 +273,15 @@ public void keyPressed() {
       }
       break;
     case '+':
-      nivelZ+=1;
-      ejes.setNivelZ(nivelZ);
+      indexNivelZ = indexNivelZ < ejes.nivelesZ().size() - 1 ? indexNivelZ + 1 : 0;
+      ejes.setActualIndexNivelZ(indexNivelZ);
       break;
     case '-':
-      nivelZ-=1;
-      ejes.setNivelZ(nivelZ);
+      indexNivelZ = 0 < indexNivelZ ? indexNivelZ - 1 : ejes.nivelesZ().size() - 1;
+      ejes.setActualIndexNivelZ(indexNivelZ);
       break;
     case 'z':
-      drawNivelZ = !drawNivelZ;
+      drawNivelesZ = !drawNivelesZ;
       break;
   }
 }
@@ -389,7 +394,7 @@ class Eje extends Frame {
     pushStyle();
     stroke(ejeColor());
     strokeWeight(ejeStroke());
-    line(i().x(), i().y(), 0, j().x(), j().y(), 0);
+    line(i().x(), i().y(), j().x(), j().y());
     popStyle();
 
     Vector iScreen = this.graph().screenLocation(i());
@@ -417,20 +422,39 @@ class Eje extends Frame {
     this.graph().endScreenDrawing();
   }
 }
+/**
+ * stressUNAL
+ *
+ * @author
+ *
+ *
+ */
+
+ /**
+  * A class to store many eje.
+  */
+
 class Ejes {
   Scene _scene;
   ArrayList<Eje> _ejes;
   ArrayList<Punto> _puntos;
 
-  float _nivelZ;
+  int _actualIndexNivelZ;
+  ArrayList<Float> _nivelesZ;
 
+  /**
+   * Creates a ejes.
+   */
   public Ejes(Scene scene) {
     _scene = scene;
 
     _ejes = new ArrayList();
     _puntos = new ArrayList();
 
-    _nivelZ = 0;
+    _actualIndexNivelZ = 0;
+
+    _nivelesZ = new ArrayList();
+    _nivelesZ.add(0f);
   }
 
   protected Scene scene() {
@@ -445,25 +469,42 @@ class Ejes {
     return _puntos;
   }
 
-  public float nivelZ() {
-    return _nivelZ;
+  public int actualIndexNivelZ() {
+    return _actualIndexNivelZ;
   }
 
-  public void setNivelZ(float nivelZ) {
-    _nivelZ = nivelZ;
-    for (Punto punto : puntos()) punto.setNivelZ(nivelZ());
-    for (Eje eje : ejes()) eje.setNivelZ(nivelZ());
+  public void setActualIndexNivelZ(int index) {
+    if ((0 <= index) && (index < nivelesZ().size())) {
+      _actualIndexNivelZ = index;
+      for (Punto punto : puntos()) {
+        punto.setNivelZ(nivelesZ().get(actualIndexNivelZ()));
+      }
+      for (Eje eje : ejes()) {
+        eje.setNivelZ(nivelesZ().get(actualIndexNivelZ()));
+      }
+    }
   }
 
-  public void add(Vector i, Vector j, String bubbleTexto) {
-    add(new Eje(scene(), i, j, bubbleTexto));
+  public ArrayList<Float> nivelesZ() {
+    return _nivelesZ;
   }
 
-  public void add(Eje eje) {
+  public void addNivelZ(float nivelZ) {
+    nivelesZ().add(nivelZ);
+  }
+
+  public void addEje(Vector i, Vector j, String bubbleTexto) {
+    addEje(new Eje(scene(), i, j, bubbleTexto));
+  }
+
+  public void addEje(Eje eje) {
     _ejes.add(eje);
     addPuntos();
   }
 
+  /**
+   * Add puntos located at intersection between each eje.
+   */
   public void addPuntos() {
     int ejesSize = ejes().size();
 
@@ -480,6 +521,9 @@ class Ejes {
     }
   }
 
+  /**
+   * Get vector intersection between two ejes
+   */
   public Vector intersectionBetweenEjes(Eje eje1, Eje eje2) {
     Vector intersection;
 
@@ -501,21 +545,24 @@ class Ejes {
       float t2 = alpha * (dx1 * dy12 - dy1 * dx12);
 
       if ((0 <= t1) && (t1 <= 1) && (0 <= t2) && (t2 <= 1)) {
-        Vector i = new Vector(eje1.i().x(), eje1.i().y());
-        Vector j = new Vector(eje1.j().x(), eje1.j().y());
+        Vector i = new Vector(eje1.i().x(), eje1.i().y(), eje1.i().z());
+        Vector j = new Vector(eje1.j().x(), eje1.j().y(), eje1.j().z());
         i.multiply(1 - t1);
         j.multiply(t1);
         intersection = Vector.add(i, j);
       } else {
-        intersection = null;
+        intersection = null;  // the lines don't cross between them
       }
     } else {
-      intersection = null;
+      intersection = null;  // the line are parallels
     }
 
     return intersection;
   }
 
+  /**
+   * Add a point
+   */
   public void addPunto(Vector i) {
     puntos().add(new Punto(scene(), i));
   }

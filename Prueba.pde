@@ -15,9 +15,9 @@ Nodos nodos;
 Punto trackedPunto;
 
 Vector screenCoordinates;
-Vector worldCoordinates;
+Vector worldCoordinates = new Vector();
 
-float nivelZ;
+int indexNivelZ = 0;
 
 // Selector
 int colorStroke;
@@ -26,8 +26,8 @@ int colorAlpha;
 
 boolean zoomOnRegion;
 boolean drawSelector;
-boolean drawCoordinates;
-boolean drawNivelZ;
+boolean drawCoordinates = true;
+boolean drawNivelesZ;
 
 boolean addNodo;
 
@@ -50,17 +50,20 @@ void setup() {
   colorFill   = 127;
   colorAlpha  = 63;
 
+  // Ejes
   int dx = 5;
   int dy = 5;
   int length = dx * dy;
   String[] xBubbleText = {"A", "B", "C", "D", "E"};
   for (int i = 0; i < 5; i++) {
-    ejes.add(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
+    ejes.addEje(new Vector(-dx, dy * i), new Vector(length + dy, dy * i), xBubbleText[i]);
   }
   String[] yBubbleText = {"1", "2", "3", "4", "5"};
   for (int i = 0; i < 5; i++) {
-    ejes.add(new Vector(dx * i, length), new Vector(dx * i, -dy), yBubbleText[i]);
+    ejes.addEje(new Vector(dx * i, length), new Vector(dx * i, -dy), yBubbleText[i]);
   }
+  ejes.addNivelZ(5f);
+  ejes.addNivelZ(10f);
 
   // shapes = new Shape[25];
   // for (int i = 0; i < shapes.length; i++) {
@@ -85,7 +88,7 @@ void draw() {
   scene.cast();
   if (drawSelector) drawSelector();
   if (drawCoordinates) drawCoordinates();
-  if (drawNivelZ) drawNivelZ();
+  if (drawNivelesZ) drawNivelesZ();
   // if (addNodo) addNodo(); como atrapar eventos del mouse en custom func
 }
 
@@ -163,16 +166,18 @@ void zoomOnRegion() {
   }
 }
 
-void drawNivelZ() {
-  pushStyle();
-  stroke(31, 117, 254);
-  fill(31, 117, 254, 15);
-  pushMatrix();
-  translate(0, 0, nivelZ);
-  ellipse(scene.center().x(), scene.center().y(),
-    2 * scene.radius(), 2 * scene.radius());
-  popMatrix();
-  popStyle();
+void drawNivelesZ() {
+  for (int i = 0; i < ejes.nivelesZ().size(); i++) {
+    pushStyle();
+    stroke(31, 117, 254);
+    fill(31, 117, 254, 15);
+    pushMatrix();
+    translate(0, 0, ejes.nivelesZ().get(i));
+    ellipse(scene.center().x(), scene.center().y(),
+      2 * scene.radius(), 2 * scene.radius());
+    popMatrix();
+    popStyle();
+  }
 }
 
 void addNodo() {
@@ -202,15 +207,15 @@ void mouseDragged(MouseEvent event) {
 
 void mouseMoved() {
   trackedPunto = null;
+
   for (int i = 0; i < ejes.puntos().size(); i++) {
     if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
       trackedPunto = ejes.puntos().get(i);
       worldCoordinates = trackedPunto.position();
-      break;
-    } else {
-      worldCoordinates = scene.location(new Vector(mouseX, mouseY));
+      return;
     }
   }
+  worldCoordinates = scene.location(new Vector(mouseX, mouseY));
 }
 
 void mouseWheel(MouseEvent event) {
@@ -245,15 +250,15 @@ public void keyPressed() {
       }
       break;
     case '+':
-      nivelZ+=1;
-      ejes.setNivelZ(nivelZ);
+      indexNivelZ = indexNivelZ < ejes.nivelesZ().size() - 1 ? indexNivelZ + 1 : 0;
+      ejes.setActualIndexNivelZ(indexNivelZ);
       break;
     case '-':
-      nivelZ-=1;
-      ejes.setNivelZ(nivelZ);
+      indexNivelZ = 0 < indexNivelZ ? indexNivelZ - 1 : ejes.nivelesZ().size() - 1;
+      ejes.setActualIndexNivelZ(indexNivelZ);
       break;
     case 'z':
-      drawNivelZ = !drawNivelZ;
+      drawNivelesZ = !drawNivelesZ;
       break;
   }
 }
