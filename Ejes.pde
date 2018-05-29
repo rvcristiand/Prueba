@@ -76,6 +76,8 @@ class Ejes {
   void addEje(Eje eje) {
     _ejes.add(eje);
     addPuntos();
+    moveCenterScene();
+    // scene().setAnchor(new Vector(25, 25, 0));
   }
 
   /**
@@ -95,6 +97,24 @@ class Ejes {
         }
       }
     }
+  }
+
+  void moveCenterScene() {
+    Vector center = new Vector();
+
+    for (int i = 0; i < puntos().size(); i++) {
+      center.add(puntos().get(i).position());
+    }
+    center.divide(puntos().size());
+
+    scene().setCenter(center);
+  }
+
+  /**
+   * Add a point
+   */
+  void addPunto(Vector i) {
+    puntos().add(new Punto(scene(), i));
   }
 
   /**
@@ -134,12 +154,5 @@ class Ejes {
     }
 
     return intersection;
-  }
-
-  /**
-   * Add a point
-   */
-  void addPunto(Vector i) {
-    puntos().add(new Punto(scene(), i));
   }
 }

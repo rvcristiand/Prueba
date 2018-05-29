@@ -35,10 +35,12 @@ Scene scene;
 Ejes ejes;
 Nodos nodos;
 
-Punto trackedPunto;
+Punto _trackedPunto;
 
-Vector screenCoordinates;
-Vector worldCoordinates = new Vector();
+Vector _screenCoordinates;
+Vector _worldCoordinatesMouse = new Vector();
+
+String _coordinates;
 
 int indexNivelZ = 0;
 
@@ -49,8 +51,10 @@ int colorAlpha;
 
 boolean zoomOnRegion;
 boolean drawSelector;
-boolean drawCoordinates = true;
 boolean drawNivelesZ;
+
+boolean showCoordinates = true;
+boolean showNivelZ = true;
 
 boolean addNodo;
 
@@ -64,7 +68,7 @@ public void setup() {
   scene.setType(Graph.Type.ORTHOGRAPHIC);
   scene.setRadius(50);
   scene.setFieldOfView(PI / 3);
-  scene.fitBallInterpolation();
+  scene.fitBall();
 
   ejes = new Ejes(scene);
   nodos = new Nodos(scene);
@@ -109,10 +113,55 @@ public void draw() {
   // }
 
   scene.cast();
+  // scene.castOnMouseClick();
   if (drawSelector) drawSelector();
-  if (drawCoordinates) drawCoordinates();
+  if (showCoordinates) showCoordinates();
   if (drawNivelesZ) drawNivelesZ();
-  // if (addNodo) addNodo(); como atrapar eventos del mouse en custom func
+  if (showNivelZ) showNivelZ();
+}
+
+
+public String coordinates() {
+  return _coordinates;
+}
+
+public void setCoordinates(String coordinates) {
+  _coordinates = coordinates;
+}
+
+public Punto trackedPunto() {
+  return _trackedPunto;
+}
+
+public void setTrackedPunto() {
+  _trackedPunto = null;
+
+  for (int i = 0; i < ejes.puntos().size(); i++) {
+    if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
+      _trackedPunto = ejes.puntos().get(i);
+      return;
+    }
+  }
+}
+
+public Vector worldCoordinatesMouse() {
+  return _worldCoordinatesMouse;
+}
+
+public void setWorldCoordinatesMouse() {
+  if (trackedPunto() == null) {
+    _worldCoordinatesMouse = scene.location(new Vector(mouseX, mouseY));
+  } else {
+    _worldCoordinatesMouse = _trackedPunto.position();
+  }
+}
+
+public Vector screenCoordinates() {
+  return _screenCoordinates;
+}
+
+public void setScreenCoordinates(Vector i) {
+  _screenCoordinates = i;
 }
 
 public void drawSelector() {
@@ -120,16 +169,16 @@ public void drawSelector() {
 
   rectMode(CORNERS);
 
-  if (mouseX >= screenCoordinates.x()) {
+  if (mouseX >= screenCoordinates().x()) {
     stroke(0, colorStroke, 0);
     fill(0, colorFill, 0, colorAlpha);
-  } else if (mouseX < screenCoordinates.x()){
+  } else if (mouseX < screenCoordinates().x()){
     stroke(colorStroke, 0, 0);
     fill(colorFill, 0, 0, colorAlpha);
   }
 
   scene.beginScreenDrawing();
-  rect(screenCoordinates.x(), screenCoordinates.y(), mouseX, mouseY);
+  rect(screenCoordinates().x(), screenCoordinates().y(), mouseX, mouseY);
   scene.endScreenDrawing();
 
   popStyle();
@@ -137,7 +186,8 @@ public void drawSelector() {
   println("Hay que implementar un rectSelector !");
 }
 
-public void drawCoordinates() {
+
+public void showCoordinates() {
   String coordinates;
 
   pushStyle();
@@ -151,39 +201,61 @@ public void drawCoordinates() {
   coordinates = ")";
 
   fill(0, 0, 255);
-  text(nf(worldCoordinates.z(), 0, 3), width - textWidth(coordinates), height);
-  coordinates = nf(worldCoordinates.z(), 0, 3) + coordinates;
+  text(nf(worldCoordinatesMouse().z(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinatesMouse().z(), 0, 3) + coordinates;
 
   fill(0);
   text(" ,", width - textWidth(coordinates), height);
   coordinates = " ," + coordinates;
 
   fill(0, 255, 0);
-  text(nf(worldCoordinates.y(), 0, 3), width - textWidth(coordinates), height);
-  coordinates = nf(worldCoordinates.y(), 0, 3) + coordinates;
+  text(nf(worldCoordinatesMouse().y(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinatesMouse().y(), 0, 3) + coordinates;
 
   fill(0);
   text(" ,", width - textWidth(coordinates), height);
   coordinates = " ," + coordinates;
 
   fill(255, 0, 0);
-  text(nf(worldCoordinates.x(), 0, 3), width - textWidth(coordinates), height);
-  coordinates = nf(worldCoordinates.x(), 0, 3) + coordinates;
+  text(nf(worldCoordinatesMouse().x(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinatesMouse().x(), 0, 3) + coordinates;
 
   fill(0);
   text("(", width - textWidth(coordinates), height);
   coordinates = "(" + coordinates;
+
+  setCoordinates(coordinates);
+
+  scene.endScreenDrawing();
+  popStyle();
+}
+
+public void showNivelZ() {
+  pushStyle();
+  scene.beginScreenDrawing();
+
+  textAlign(RIGHT, BOTTOM);
+  textSize(14);
+
+  fill(0);
+
+  int widthAfter = 0;
+  if (showCoordinates) widthAfter = 10;
+
+  text("Nivel Z: " + nf(ejes.nivelesZ().get(indexNivelZ), 0, 3),
+    width - textWidth(coordinates()) - widthAfter, height);
 
   scene.endScreenDrawing();
   popStyle();
 }
 
 public void zoomOnRegion() {
-  if (screenCoordinates.x() < mouseX) {
-    Rectangle screenRectangle = new Rectangle((int) screenCoordinates.x(),
-      (int) screenCoordinates.y(), mouseX - (int) screenCoordinates.x(),
-      mouseY - (int) screenCoordinates.y());
-    scene.fitScreenRegionInterpolation(screenRectangle);
+  if (screenCoordinates().x() < mouseX) {
+    Rectangle screenRectangle = new Rectangle((int) screenCoordinates().x(),
+      (int) screenCoordinates().y(), mouseX - (int) screenCoordinates().x(),
+      mouseY - (int) screenCoordinates().y());
+    scene.fitScreenRegionInterpolation(screenRectangle); // version antigua
+    // scene.zoomOnRegion(screenRectangle); // version nueva
   } else {
     println("Hay que implementar un zoom out !");
   }
@@ -192,8 +264,13 @@ public void zoomOnRegion() {
 public void drawNivelesZ() {
   for (int i = 0; i < ejes.nivelesZ().size(); i++) {
     pushStyle();
-    stroke(31, 117, 254);
-    fill(31, 117, 254, 15);
+    if (i == ejes.actualIndexNivelZ()) {
+      stroke(144, 238, 144);
+      fill(144, 238, 144, 15);
+    } else {
+      stroke(31, 117, 254);
+      fill(31, 117, 254, 15);
+    }
     pushMatrix();
     translate(0, 0, ejes.nivelesZ().get(i));
     ellipse(scene.center().x(), scene.center().y(),
@@ -204,12 +281,17 @@ public void drawNivelesZ() {
 }
 
 public void addNodo() {
-  nodos.add(worldCoordinates);
+  nodos.add(worldCoordinatesMouse());
+  println(nodos.nodos().size());
 }
 
 public void mouseClicked(MouseEvent event) {
   if (mouseButton == CENTER  && event.getCount() == 2) scene.fitBallInterpolation();
-  if (addNodo && mouseButton == LEFT) addNodo();
+  if (addNodo && mouseButton == LEFT && event.getCount() == 1) {
+    addNodo();
+    addNodo = false;
+    println("done");
+  }
 }
 
 public void mouseDragged(MouseEvent event) {
@@ -229,32 +311,31 @@ public void mouseDragged(MouseEvent event) {
 }
 
 public void mouseMoved() {
-  trackedPunto = null;
+  setTrackedPunto();
+  setWorldCoordinatesMouse();
+  // scene.setCenter(new Vector(worldCoordinatesMouse().x(),
+  //   worldCoordinatesMouse().y(), 0));
+  // println(scene.center());
 
-  for (int i = 0; i < ejes.puntos().size(); i++) {
-    if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
-      trackedPunto = ejes.puntos().get(i);
-      worldCoordinates = trackedPunto.position();
-      return;
-    }
-  }
-  worldCoordinates = scene.location(new Vector(mouseX, mouseY));
+
+  // scene.setAnchor(new Vector(worldCoordinates.x(),
+  //   worldCoordinates.y(), 0));
 }
 
 public void mouseWheel(MouseEvent event) {
   scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye());
+  // scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye()); // no funciona en la ultima version
+  setWorldCoordinatesMouse();
 }
 
 public void mousePressed() {
-  if (mouseButton == LEFT) {
-    screenCoordinates = new Vector(mouseX, mouseY);
-  }
+  if (mouseButton == LEFT) setScreenCoordinates(new Vector(mouseX, mouseY));
 }
 
 public void mouseReleased() {
   if (zoomOnRegion) zoomOnRegion();
 
-  screenCoordinates = null;
+  setScreenCoordinates(null);
   drawSelector = false;
   zoomOnRegion = false;
 }
@@ -262,7 +343,11 @@ public void mouseReleased() {
 public void keyPressed() {
   switch (key) {
     case 'c':
-      drawCoordinates = !drawCoordinates;
+      showCoordinates = !showCoordinates;
+      if (!showCoordinates) setCoordinates("");
+      break;
+    case 'e':
+      nodos.setDrawEtiqueta(!nodos.drawEtiqueta());
       break;
     case 'n':
       addNodo = !addNodo;
@@ -313,7 +398,9 @@ public void keyPressed() {
   //   fig.setFill(color(random(0, 255), random(0, 255), random(0, 255)));
   //   return fig;
   // }
-class Eje extends Frame {
+class Eje extends Shape {
+  Scene _scene;
+
   Vector _i;
   Vector _j;
 
@@ -324,59 +411,85 @@ class Eje extends Frame {
   int _ejeColor;
   int _ejeStroke;
 
-  public Eje(Scene scene, Vector i, Vector j, String bubbleText) {
+  Eje(Scene scene, Vector i, Vector j, String bubbleText) {
     this(scene, i, j, bubbleText, 40, color(239, 127, 26), 3, color(0));
   }
 
-  protected Eje(Scene scene, Vector i, Vector j, String bubbleText,
+  Eje(Scene scene, Vector i, Vector j, String bubbleText,
     int bubbleSize, int ejeColor, int ejeStroke, int bubbleTextColor) {
     super(scene);
 
-    _i = i;
-    _j = j;
+    _scene = scene;
 
-    _bubbleText = bubbleText;
-    _bubbleSize = bubbleSize;
-    _bubbleTextColor = bubbleTextColor;
+    setI(i);
+    setJ(j);
 
-    _ejeColor = ejeColor;
-    _ejeStroke = ejeStroke;
+    setBubbleText(bubbleText);
+    setBubbleSize(bubbleSize);
+    setBubbleTextColor(bubbleTextColor);
+
+    setEjeColor(ejeColor);
+    setEjeStroke(ejeStroke);
+  }
+
+  public Scene scene() {
+    return _scene;
   }
 
   public Vector i() {
     return _i;
   }
 
-  public void setI(float x, float y, float z) {
-    i().setX(x); i().setY(y); i().setZ(z);
+  public void setI(Vector i) {
+    _i = i;
   }
 
   public Vector j() {
     return _j;
   }
 
-  public void setJ(float x, float y, float z) {
-    j().setX(x); j().setY(y); j().setZ(z);
+  public void setJ(Vector j) {
+    _j = j;
   }
 
   public String bubbleText() {
     return _bubbleText;
   }
 
+  public void setBubbleText(String bubbleText) {
+    _bubbleText = bubbleText;
+  }
+
   public int bubbleSize() {
     return _bubbleSize;
+  }
+
+  public void setBubbleSize(int bubbleSize) {
+    _bubbleSize = bubbleSize;
   }
 
   public int bubbleTextColor() {
     return _bubbleTextColor;
   }
 
+  public void setBubbleTextColor(int bubbleTextColor) {
+    _bubbleTextColor = bubbleTextColor;
+  }
+
   public int ejeColor() {
     return _ejeColor;
   }
 
+  public void setEjeColor(int ejeColor) {
+    _ejeColor = ejeColor;
+  }
+
   public int ejeStroke() {
     return _ejeStroke;
+  }
+
+  public void setEjeStroke(int ejeStroke) {
+    _ejeStroke = ejeStroke;
   }
 
   public float nivelZ() {
@@ -384,28 +497,28 @@ class Eje extends Frame {
   }
 
   public void setNivelZ(float nivelZ) {
-    setI(i().x(), i().y(), nivelZ);
-    setJ(j().x(), j().y(), nivelZ);
-    setPosition(position().x(), position().y(), nivelZ);
+    setI(new Vector(i().x(), i().y(), nivelZ));
+    setJ(new Vector(j().x(), j().y(), nivelZ));
+    setPosition(new Vector(position().x(), position().y(), nivelZ));
   }
 
   public @Override
-  void visit() {
-    pushStyle();
-    stroke(ejeColor());
-    strokeWeight(ejeStroke());
-    line(i().x(), i().y(), j().x(), j().y());
-    popStyle();
+  void setGraphics(PGraphics pGraphics) {
+    pGraphics.pushStyle();
+    pGraphics.stroke(ejeColor());
+    pGraphics.strokeWeight(ejeStroke());
+    pGraphics.line(i().x(), i().y(), j().x(), j().y());
+    pGraphics.popStyle();
 
-    Vector iScreen = this.graph().screenLocation(i());
-    Vector jScreen = this.graph().screenLocation(j());
+    Vector iScreen = scene().screenLocation(i());
+    Vector jScreen = scene().screenLocation(j());
     Vector parallelDirection = Vector.subtract(jScreen, iScreen);
     parallelDirection.normalize();
 
     Vector center = Vector.add(iScreen,
       Vector.multiply(parallelDirection, -bubbleSize() / 2));
 
-    this.graph().beginScreenDrawing();
+    scene().beginScreenDrawing();
     pushStyle();
     stroke(ejeColor());
     strokeWeight(ejeStroke());
@@ -415,11 +528,11 @@ class Eje extends Frame {
 
     pushStyle();
     textAlign(CENTER, CENTER);
-    textSize(0.5f * bubbleSize());
+    textSize(0.5f * bubbleSize());  // problemas
     fill(bubbleTextColor());
-    text(bubbleText(), center.x(), center.y());
+    text(bubbleText(), center.x(), center.y());  // problemas
     popStyle();
-    this.graph().endScreenDrawing();
+    scene().endScreenDrawing();
   }
 }
 /**
@@ -500,6 +613,8 @@ class Ejes {
   public void addEje(Eje eje) {
     _ejes.add(eje);
     addPuntos();
+    moveCenterScene();
+    // scene().setAnchor(new Vector(25, 25, 0));
   }
 
   /**
@@ -519,6 +634,24 @@ class Ejes {
         }
       }
     }
+  }
+
+  public void moveCenterScene() {
+    Vector center = new Vector();
+
+    for (int i = 0; i < puntos().size(); i++) {
+      center.add(puntos().get(i).position());
+    }
+    center.divide(puntos().size());
+
+    scene().setCenter(center);
+  }
+
+  /**
+   * Add a point
+   */
+  public void addPunto(Vector i) {
+    puntos().add(new Punto(scene(), i));
   }
 
   /**
@@ -559,52 +692,97 @@ class Ejes {
 
     return intersection;
   }
-
-  /**
-   * Add a point
-   */
-  public void addPunto(Vector i) {
-    puntos().add(new Punto(scene(), i));
-  }
 }
 class Nodo extends Frame{
   Scene _scene;
 
-  float _sphereSize;
-  int _sphereColor;
   String _etiqueta;
 
-  Nodo(Scene scene, String etiqueta) {
-    this(scene, new Vector(), etiqueta);
-  }
+  float _sphereSize;
+  int _sphereColor;
+
+  int _etiquetaColor;
+  int _etiquetaSize;
+
+  boolean _drawEtiqueta;
 
   Nodo(Scene scene, Vector i, String etiqueta) {
+    this(scene, i, etiqueta, 0.25f, color(128, 0, 255), color(0), 14, true);
+  }
+
+  Nodo(Scene scene, Vector i, String etiqueta, float sphereSize,
+    int sphereColor, int etiquetaColor, int etiquetaSize,
+    boolean drawEtiqueta) {
     super(scene);
 
+    setScene(scene);
     setPosition(i);
 
-    _scene = scene;
+    setEtiqueta(etiqueta);
 
-    _etiqueta = etiqueta;
+    setSphereSize(sphereSize);
+    setSphereColor(sphereColor);
 
-    _sphereSize = 0.5f;
-    _sphereColor = color(128, 0, 255);
+    setEtiquetaColor(etiquetaColor);
+    setEtiquetaSize(etiquetaSize);
+
+    setDrawEtiqueta(drawEtiqueta);
   }
 
   public Scene scene() {
     return _scene;
   }
 
+  public void setScene(Scene scene) {
+    _scene = scene;
+  }
+
   public float sphereSize() {
     return _sphereSize;
+  }
+
+  public void setSphereSize(float sphereSize) {
+    _sphereSize = sphereSize;
   }
 
   public int sphereColor() {
     return _sphereColor;
   }
 
+  public void setSphereColor(int sphereColor) {
+    _sphereColor = sphereColor;
+  }
+
   public String etiqueta() {
     return _etiqueta;
+  }
+
+  public void setEtiqueta(String etiqueta) {
+    _etiqueta = etiqueta;
+  }
+
+  public int etiquetaColor() {
+    return _etiquetaColor;
+  }
+
+  public void setEtiquetaColor(int etiquetaColor) {
+    _etiquetaColor = etiquetaColor;
+  }
+
+  public float etiquetaSize() {
+    return _etiquetaSize;
+  }
+
+  public void setEtiquetaSize(int etiquetaSize) {
+    _etiquetaSize = etiquetaSize;
+  }
+
+  public boolean drawEtiqueta() {
+    return _drawEtiqueta;
+  }
+
+  public void setDrawEtiqueta(boolean drawEtiqueta) {
+    _drawEtiqueta = drawEtiqueta;
   }
 
   public @Override
@@ -614,25 +792,184 @@ class Nodo extends Frame{
     fill(sphereColor());
     sphere(sphereSize());
     popStyle();
+
+    Vector iScreen = scene().screenLocation(position());
+
+    if (drawEtiqueta()) {
+      scene().beginScreenDrawing();
+      pushStyle();
+      textAlign(CENTER, CENTER);
+      textSize(etiquetaSize());  // problemas
+      fill(etiquetaColor());
+      text(etiqueta(), iScreen.x() + etiquetaSize(), iScreen.y() - etiquetaSize());  // problemas
+      popStyle();
+      scene().endScreenDrawing();
+    }
   }
 }
+
+
+
+
+
+/* ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR
+*/
+
+
+
+// class Nodo extends Frame{
+//   Scene _scene;
+//
+//   String _etiqueta;
+//
+//   float _sphereSize;
+//   int _sphereColor;
+//
+//   int _etiquetaColor;
+//   int _etiquetaSize;
+//
+//   // boolean _drawEtiqueta;
+//
+//   Nodo(Scene scene, Vector i, String etiqueta) {
+//     // this(scene, i, etiqueta, 0.25, color(128, 0, 255), color(0), 12, true);
+//     this(scene, i, etiqueta, 0.25, color(128, 0, 255), color(0), 12);
+//   }
+//
+//   // Nodo(Scene scene, Vector i, String etiqueta, float sphereSize,
+//   //   int sphereColor, int etiquetaColor, int etiquetaSize,
+//   //   boolean drawEtiqueta) {
+//   Nodo(Scene scene, Vector i, String etiqueta, float sphereSize,
+//     int sphereColor, int etiquetaColor, int etiquetaSize) {
+//     super(scene);
+//
+//     setScene(scene);
+//     setPosition(i);
+//
+//     setEtiqueta(etiqueta);
+//
+//     setSphereSize(sphereSize);
+//     setSphereColor(sphereColor);
+//
+//     setEtiquetaColor(etiquetaColor);
+//     setEtiquetaSize(etiquetaSize);
+//
+//     // setDrawEtiqueta(drawEtiqueta);
+//   }
+//
+//   Scene scene() {
+//     return _scene;
+//   }
+//
+//   void setScene(Scene scene) {
+//     _scene = scene;
+//   }
+//
+//   float sphereSize() {
+//     return _sphereSize;
+//   }
+//
+//   void setSphereSize(float sphereSize) {
+//     _sphereSize = sphereSize;
+//   }
+//
+//   int sphereColor() {
+//     return _sphereColor;
+//   }
+//
+//   void setSphereColor(int sphereColor) {
+//     _sphereColor = sphereColor;
+//   }
+//
+//   String etiqueta() {
+//     return _etiqueta;
+//   }
+//
+//   void setEtiqueta(String etiqueta) {
+//     _etiqueta = etiqueta;
+//   }
+//
+//   int etiquetaColor() {
+//     return _etiquetaColor;
+//   }
+//
+//   void setEtiquetaColor(int etiquetaColor) {
+//     _etiquetaColor = etiquetaColor;
+//   }
+//
+//   float etiquetaSize() {
+//     return _etiquetaSize;
+//   }
+//
+//   void setEtiquetaSize(int etiquetaSize) {
+//     _etiquetaSize = etiquetaSize;
+//   }
+//
+//   // boolean drawEtiqueta() {
+//   //   return _drawEtiqueta;
+//   // }
+//
+//   // void setDrawEtiqueta(boolean drawEtiqueta) {
+//   //   _drawEtiqueta = drawEtiqueta;
+//   // }
+//
+//   @Override
+//   void visit() {
+//     pushStyle();
+//     noStroke();
+//     fill(sphereColor());
+//     sphere(sphereSize());
+//     popStyle();
+//
+//     // Vector iScreen = scene().screenLocation(position());
+//
+//     // if (drawEtiqueta()) {
+//     //   scene().beginScreenDrawing();
+//     //   pushStyle();
+//     //   textAlign(CENTER, CENTER);
+//     //   textSize(etiquetaSize());  // problemas
+//     //   fill(etiquetaColor());
+//     //   text(etiqueta(), iScreen.x(), iScreen.y());  // problemas
+//     //   popStyle();
+//     //   scene().endScreenDrawing();
+//     // }
+//   }
+// }
 class Nodos {
   Scene _scene;
 
   ArrayList<Nodo> _nodos;
 
+  boolean _drawEtiqueta;
+
   public Nodos(Scene scene) {
-    _scene = scene;
+    setScene(scene);
 
     _nodos = new ArrayList();
+
+    setDrawEtiqueta(true);
   }
 
-  protected Scene scene() {
+  public Scene scene() {
     return _scene;
+  }
+
+  public void setScene(Scene scene) {
+    _scene = scene;
   }
 
   public ArrayList<Nodo> nodos() {
     return _nodos;
+  }
+
+  public boolean drawEtiqueta() {
+    return _drawEtiqueta;
+  }
+
+  public void setDrawEtiqueta(boolean drawEtiqueta) {
+    for (Nodo nodo : nodos()) {
+      nodo.setDrawEtiqueta(drawEtiqueta);
+    }
+    _drawEtiqueta = drawEtiqueta;
   }
 
   public void add(Vector i) {
@@ -640,7 +977,7 @@ class Nodos {
   }
 
   public void add(Nodo nodo) {
-    _nodos.add(nodo);
+    nodos().add(nodo);
   }
 }
 class Punto extends Frame {
@@ -658,7 +995,7 @@ class Punto extends Frame {
     super(scene);
 
     _crossSize = 20;
-    _crossColor = color(0);
+    _crossColor = color(53, 56, 57);
     _crossWeightStroke = 1.5f;
 
     setPosition(i);
@@ -689,22 +1026,22 @@ class Punto extends Frame {
     setPosition(new Vector(position().x(), position().y(), nivelZ));
   }
 
-  public @Override
-  void visit() {
-    Vector center = scene.screenLocation(this.position());
-    this.graph().beginScreenDrawing();
-    pushStyle();
-    stroke(crossColor());
-    strokeWeight(crossWeightStroke());
-    noFill();
-    ellipse(center.x(), center.y(), 3 * crossSize() / 8, 3 * crossSize() / 8);
-    line(center.x() - crossSize() / 2, center.y(),
-      center.x() + crossSize() / 2, center.y());
-    line(center.x(), center.y() - crossSize() / 2,
-      center.x(), center.y() + crossSize() / 2);
-    popStyle();
-    this.graph().endScreenDrawing();
-  }
+public @Override
+void visit() {
+  Vector center = scene.screenLocation(this.position());
+  this.graph().beginScreenDrawing();
+  pushStyle();
+  stroke(crossColor());
+  strokeWeight(crossWeightStroke());
+  noFill();
+  ellipse(center.x(), center.y(), 3 * crossSize() / 8, 3 * crossSize() / 8);
+  line(center.x() - crossSize() / 2, center.y(),
+    center.x() + crossSize() / 2, center.y());
+  line(center.x(), center.y() - crossSize() / 2,
+    center.x(), center.y() + crossSize() / 2);
+  popStyle();
+  this.graph().endScreenDrawing();
+}
 }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "Prueba" };

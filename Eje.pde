@@ -1,4 +1,6 @@
-class Eje extends Frame {
+class Eje extends Shape {
+  Scene _scene;
+
   Vector _i;
   Vector _j;
 
@@ -9,88 +11,114 @@ class Eje extends Frame {
   int _ejeColor;
   int _ejeStroke;
 
-  public Eje(Scene scene, Vector i, Vector j, String bubbleText) {
+  Eje(Scene scene, Vector i, Vector j, String bubbleText) {
     this(scene, i, j, bubbleText, 40, color(239, 127, 26), 3, color(0));
   }
 
-  protected Eje(Scene scene, Vector i, Vector j, String bubbleText,
+  Eje(Scene scene, Vector i, Vector j, String bubbleText,
     int bubbleSize, int ejeColor, int ejeStroke, int bubbleTextColor) {
     super(scene);
 
-    _i = i;
-    _j = j;
+    _scene = scene;
 
-    _bubbleText = bubbleText;
-    _bubbleSize = bubbleSize;
-    _bubbleTextColor = bubbleTextColor;
+    setI(i);
+    setJ(j);
 
-    _ejeColor = ejeColor;
-    _ejeStroke = ejeStroke;
+    setBubbleText(bubbleText);
+    setBubbleSize(bubbleSize);
+    setBubbleTextColor(bubbleTextColor);
+
+    setEjeColor(ejeColor);
+    setEjeStroke(ejeStroke);
+  }
+
+  Scene scene() {
+    return _scene;
   }
 
   Vector i() {
     return _i;
   }
 
-  public void setI(float x, float y, float z) {
-    i().setX(x); i().setY(y); i().setZ(z);
+  void setI(Vector i) {
+    _i = i;
   }
 
   Vector j() {
     return _j;
   }
 
-  public void setJ(float x, float y, float z) {
-    j().setX(x); j().setY(y); j().setZ(z);
+  void setJ(Vector j) {
+    _j = j;
   }
 
   String bubbleText() {
     return _bubbleText;
   }
 
+  void setBubbleText(String bubbleText) {
+    _bubbleText = bubbleText;
+  }
+
   int bubbleSize() {
     return _bubbleSize;
+  }
+
+  void setBubbleSize(int bubbleSize) {
+    _bubbleSize = bubbleSize;
   }
 
   int bubbleTextColor() {
     return _bubbleTextColor;
   }
 
+  void setBubbleTextColor(int bubbleTextColor) {
+    _bubbleTextColor = bubbleTextColor;
+  }
+
   int ejeColor() {
     return _ejeColor;
+  }
+
+  void setEjeColor(int ejeColor) {
+    _ejeColor = ejeColor;
   }
 
   int ejeStroke() {
     return _ejeStroke;
   }
 
-  public float nivelZ() {
+  void setEjeStroke(int ejeStroke) {
+    _ejeStroke = ejeStroke;
+  }
+
+  float nivelZ() {
     return position().z();
   }
 
   public void setNivelZ(float nivelZ) {
-    setI(i().x(), i().y(), nivelZ);
-    setJ(j().x(), j().y(), nivelZ);
-    setPosition(position().x(), position().y(), nivelZ);
+    setI(new Vector(i().x(), i().y(), nivelZ));
+    setJ(new Vector(j().x(), j().y(), nivelZ));
+    setPosition(new Vector(position().x(), position().y(), nivelZ));
   }
 
   @Override
-  void visit() {
-    pushStyle();
-    stroke(ejeColor());
-    strokeWeight(ejeStroke());
-    line(i().x(), i().y(), j().x(), j().y());
-    popStyle();
+  void setGraphics(PGraphics pGraphics) {
+    pGraphics.pushStyle();
+    pGraphics.stroke(ejeColor());
+    pGraphics.strokeWeight(ejeStroke());
+    pGraphics.line(i().x(), i().y(), j().x(), j().y());
+    pGraphics.popStyle();
 
-    Vector iScreen = this.graph().screenLocation(i());
-    Vector jScreen = this.graph().screenLocation(j());
+    Vector iScreen = scene().screenLocation(i());
+    Vector jScreen = scene().screenLocation(j());
     Vector parallelDirection = Vector.subtract(jScreen, iScreen);
     parallelDirection.normalize();
 
     Vector center = Vector.add(iScreen,
       Vector.multiply(parallelDirection, -bubbleSize() / 2));
 
-    this.graph().beginScreenDrawing();
+    scene().beginScreenDrawing();
     pushStyle();
     stroke(ejeColor());
     strokeWeight(ejeStroke());
@@ -100,10 +128,10 @@ class Eje extends Frame {
 
     pushStyle();
     textAlign(CENTER, CENTER);
-    textSize(0.5 * bubbleSize());
+    textSize(0.5 * bubbleSize());  // problemas
     fill(bubbleTextColor());
-    text(bubbleText(), center.x(), center.y());
+    text(bubbleText(), center.x(), center.y());  // problemas
     popStyle();
-    this.graph().endScreenDrawing();
+    scene().endScreenDrawing();
   }
 }

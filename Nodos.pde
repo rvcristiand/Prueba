@@ -3,18 +3,37 @@ class Nodos {
 
   ArrayList<Nodo> _nodos;
 
+  boolean _drawEtiqueta;
+
   public Nodos(Scene scene) {
-    _scene = scene;
+    setScene(scene);
 
     _nodos = new ArrayList();
+
+    setDrawEtiqueta(true);
   }
 
-  protected Scene scene() {
+  Scene scene() {
     return _scene;
   }
 
-  public ArrayList<Nodo> nodos() {
+  void setScene(Scene scene) {
+    _scene = scene;
+  }
+
+  ArrayList<Nodo> nodos() {
     return _nodos;
+  }
+
+  boolean drawEtiqueta() {
+    return _drawEtiqueta;
+  }
+
+  void setDrawEtiqueta(boolean drawEtiqueta) {
+    for (Nodo nodo : nodos()) {
+      nodo.setDrawEtiqueta(drawEtiqueta);
+    }
+    _drawEtiqueta = drawEtiqueta;
   }
 
   void add(Vector i) {
@@ -22,6 +41,6 @@ class Nodos {
   }
 
   void add(Nodo nodo) {
-    _nodos.add(nodo);
+    nodos().add(nodo);
   }
 }

@@ -12,10 +12,12 @@ Scene scene;
 Ejes ejes;
 Nodos nodos;
 
-Punto trackedPunto;
+Punto _trackedPunto;
 
-Vector screenCoordinates;
-Vector worldCoordinates = new Vector();
+Vector _screenCoordinates;
+Vector _worldCoordinatesMouse = new Vector();
+
+String _coordinates;
 
 int indexNivelZ = 0;
 
@@ -26,8 +28,10 @@ int colorAlpha;
 
 boolean zoomOnRegion;
 boolean drawSelector;
-boolean drawCoordinates = true;
 boolean drawNivelesZ;
+
+boolean showCoordinates = true;
+boolean showNivelZ = true;
 
 boolean addNodo;
 
@@ -41,7 +45,7 @@ void setup() {
   scene.setType(Graph.Type.ORTHOGRAPHIC);
   scene.setRadius(50);
   scene.setFieldOfView(PI / 3);
-  scene.fitBallInterpolation();
+  scene.fitBall();
 
   ejes = new Ejes(scene);
   nodos = new Nodos(scene);
@@ -86,10 +90,55 @@ void draw() {
   // }
 
   scene.cast();
+  // scene.castOnMouseClick();
   if (drawSelector) drawSelector();
-  if (drawCoordinates) drawCoordinates();
+  if (showCoordinates) showCoordinates();
   if (drawNivelesZ) drawNivelesZ();
-  // if (addNodo) addNodo(); como atrapar eventos del mouse en custom func
+  if (showNivelZ) showNivelZ();
+}
+
+
+String coordinates() {
+  return _coordinates;
+}
+
+void setCoordinates(String coordinates) {
+  _coordinates = coordinates;
+}
+
+Punto trackedPunto() {
+  return _trackedPunto;
+}
+
+void setTrackedPunto() {
+  _trackedPunto = null;
+
+  for (int i = 0; i < ejes.puntos().size(); i++) {
+    if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
+      _trackedPunto = ejes.puntos().get(i);
+      return;
+    }
+  }
+}
+
+Vector worldCoordinatesMouse() {
+  return _worldCoordinatesMouse;
+}
+
+void setWorldCoordinatesMouse() {
+  if (trackedPunto() == null) {
+    _worldCoordinatesMouse = scene.location(new Vector(mouseX, mouseY));
+  } else {
+    _worldCoordinatesMouse = _trackedPunto.position();
+  }
+}
+
+Vector screenCoordinates() {
+  return _screenCoordinates;
+}
+
+void setScreenCoordinates(Vector i) {
+  _screenCoordinates = i;
 }
 
 void drawSelector() {
@@ -97,16 +146,16 @@ void drawSelector() {
 
   rectMode(CORNERS);
 
-  if (mouseX >= screenCoordinates.x()) {
+  if (mouseX >= screenCoordinates().x()) {
     stroke(0, colorStroke, 0);
     fill(0, colorFill, 0, colorAlpha);
-  } else if (mouseX < screenCoordinates.x()){
+  } else if (mouseX < screenCoordinates().x()){
     stroke(colorStroke, 0, 0);
     fill(colorFill, 0, 0, colorAlpha);
   }
 
   scene.beginScreenDrawing();
-  rect(screenCoordinates.x(), screenCoordinates.y(), mouseX, mouseY);
+  rect(screenCoordinates().x(), screenCoordinates().y(), mouseX, mouseY);
   scene.endScreenDrawing();
 
   popStyle();
@@ -114,7 +163,8 @@ void drawSelector() {
   println("Hay que implementar un rectSelector !");
 }
 
-void drawCoordinates() {
+
+void showCoordinates() {
   String coordinates;
 
   pushStyle();
@@ -128,39 +178,61 @@ void drawCoordinates() {
   coordinates = ")";
 
   fill(0, 0, 255);
-  text(nf(worldCoordinates.z(), 0, 3), width - textWidth(coordinates), height);
-  coordinates = nf(worldCoordinates.z(), 0, 3) + coordinates;
+  text(nf(worldCoordinatesMouse().z(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinatesMouse().z(), 0, 3) + coordinates;
 
   fill(0);
   text(" ,", width - textWidth(coordinates), height);
   coordinates = " ," + coordinates;
 
   fill(0, 255, 0);
-  text(nf(worldCoordinates.y(), 0, 3), width - textWidth(coordinates), height);
-  coordinates = nf(worldCoordinates.y(), 0, 3) + coordinates;
+  text(nf(worldCoordinatesMouse().y(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinatesMouse().y(), 0, 3) + coordinates;
 
   fill(0);
   text(" ,", width - textWidth(coordinates), height);
   coordinates = " ," + coordinates;
 
   fill(255, 0, 0);
-  text(nf(worldCoordinates.x(), 0, 3), width - textWidth(coordinates), height);
-  coordinates = nf(worldCoordinates.x(), 0, 3) + coordinates;
+  text(nf(worldCoordinatesMouse().x(), 0, 3), width - textWidth(coordinates), height);
+  coordinates = nf(worldCoordinatesMouse().x(), 0, 3) + coordinates;
 
   fill(0);
   text("(", width - textWidth(coordinates), height);
   coordinates = "(" + coordinates;
+
+  setCoordinates(coordinates);
+
+  scene.endScreenDrawing();
+  popStyle();
+}
+
+void showNivelZ() {
+  pushStyle();
+  scene.beginScreenDrawing();
+
+  textAlign(RIGHT, BOTTOM);
+  textSize(14);
+
+  fill(0);
+
+  int widthAfter = 0;
+  if (showCoordinates) widthAfter = 10;
+
+  text("Nivel Z: " + nf(ejes.nivelesZ().get(indexNivelZ), 0, 3),
+    width - textWidth(coordinates()) - widthAfter, height);
 
   scene.endScreenDrawing();
   popStyle();
 }
 
 void zoomOnRegion() {
-  if (screenCoordinates.x() < mouseX) {
-    Rectangle screenRectangle = new Rectangle((int) screenCoordinates.x(),
-      (int) screenCoordinates.y(), mouseX - (int) screenCoordinates.x(),
-      mouseY - (int) screenCoordinates.y());
-    scene.fitScreenRegionInterpolation(screenRectangle);
+  if (screenCoordinates().x() < mouseX) {
+    Rectangle screenRectangle = new Rectangle((int) screenCoordinates().x(),
+      (int) screenCoordinates().y(), mouseX - (int) screenCoordinates().x(),
+      mouseY - (int) screenCoordinates().y());
+    scene.fitScreenRegionInterpolation(screenRectangle); // version antigua
+    // scene.zoomOnRegion(screenRectangle); // version nueva
   } else {
     println("Hay que implementar un zoom out !");
   }
@@ -169,8 +241,13 @@ void zoomOnRegion() {
 void drawNivelesZ() {
   for (int i = 0; i < ejes.nivelesZ().size(); i++) {
     pushStyle();
-    stroke(31, 117, 254);
-    fill(31, 117, 254, 15);
+    if (i == ejes.actualIndexNivelZ()) {
+      stroke(144, 238, 144);
+      fill(144, 238, 144, 15);
+    } else {
+      stroke(31, 117, 254);
+      fill(31, 117, 254, 15);
+    }
     pushMatrix();
     translate(0, 0, ejes.nivelesZ().get(i));
     ellipse(scene.center().x(), scene.center().y(),
@@ -181,12 +258,17 @@ void drawNivelesZ() {
 }
 
 void addNodo() {
-  nodos.add(worldCoordinates);
+  nodos.add(worldCoordinatesMouse());
+  println(nodos.nodos().size());
 }
 
 void mouseClicked(MouseEvent event) {
   if (mouseButton == CENTER  && event.getCount() == 2) scene.fitBallInterpolation();
-  if (addNodo && mouseButton == LEFT) addNodo();
+  if (addNodo && mouseButton == LEFT && event.getCount() == 1) {
+    addNodo();
+    addNodo = false;
+    println("done");
+  }
 }
 
 void mouseDragged(MouseEvent event) {
@@ -206,32 +288,31 @@ void mouseDragged(MouseEvent event) {
 }
 
 void mouseMoved() {
-  trackedPunto = null;
+  setTrackedPunto();
+  setWorldCoordinatesMouse();
+  // scene.setCenter(new Vector(worldCoordinatesMouse().x(),
+  //   worldCoordinatesMouse().y(), 0));
+  // println(scene.center());
 
-  for (int i = 0; i < ejes.puntos().size(); i++) {
-    if (scene.track(mouseX, mouseY, ejes.puntos().get(i))) {
-      trackedPunto = ejes.puntos().get(i);
-      worldCoordinates = trackedPunto.position();
-      return;
-    }
-  }
-  worldCoordinates = scene.location(new Vector(mouseX, mouseY));
+
+  // scene.setAnchor(new Vector(worldCoordinates.x(),
+  //   worldCoordinates.y(), 0));
 }
 
 void mouseWheel(MouseEvent event) {
   scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye());
+  // scene.translate(new Vector(0, 0, event.getCount() * 50), -1, scene.eye()); // no funciona en la ultima version
+  setWorldCoordinatesMouse();
 }
 
 void mousePressed() {
-  if (mouseButton == LEFT) {
-    screenCoordinates = new Vector(mouseX, mouseY);
-  }
+  if (mouseButton == LEFT) setScreenCoordinates(new Vector(mouseX, mouseY));
 }
 
 void mouseReleased() {
   if (zoomOnRegion) zoomOnRegion();
 
-  screenCoordinates = null;
+  setScreenCoordinates(null);
   drawSelector = false;
   zoomOnRegion = false;
 }
@@ -239,7 +320,11 @@ void mouseReleased() {
 public void keyPressed() {
   switch (key) {
     case 'c':
-      drawCoordinates = !drawCoordinates;
+      showCoordinates = !showCoordinates;
+      if (!showCoordinates) setCoordinates("");
+      break;
+    case 'e':
+      nodos.setDrawEtiqueta(!nodos.drawEtiqueta());
       break;
     case 'n':
       addNodo = !addNodo;
